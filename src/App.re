@@ -4,6 +4,6 @@ let make = _children => {
   ...component,
   render: _self =>
     <div>
-      {ReasonReact.string("asdf")}
+      <CategoryTree />
     </div>
 };
