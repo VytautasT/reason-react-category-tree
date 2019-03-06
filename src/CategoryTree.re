@@ -3,14 +3,9 @@ type treeNode = {
   childNodes: list(treeNode),
 };
 
-type dirtyNode = {
-  node: treeNode,
-  uncommitedValue: string,
-};
-
 type state = {
   root: treeNode,
-  dirtyNode: option(dirtyNode),
+  dirtyNode: option(treeNode),
   hoveredNode: option(treeNode),
 };
 
@@ -18,23 +13,11 @@ type action =
   | Add(list(treeNode))
   | Remove(list(treeNode))
   | EnterEditMode(treeNode)
-  | Edit(string)
-  | ExitEditMode(list(treeNode))
+  | ExitEditMode(string, list(treeNode))
   | MouseEnter(treeNode)
   | MouseLeave(treeNode);
 
 let component = ReasonReact.reducerComponent("CategoryTree");
-
-let renderInput = (~value, ~handleChange, ~handleBlur) =>
-  <input
-    value
-    autoFocus=true
-    onChange={event => event->ReactEvent.Form.target##value->handleChange}
-    onBlur={_event => handleBlur()}
-    onKeyDown={event =>
-      event->ReactEvent.Keyboard.key == "Enter" ? handleBlur() : ()
-    }
-  />;
 
 let renderButtons = (~self, ~ancestors) =>
   <>
@@ -50,8 +33,8 @@ let renderButtons = (~self, ~ancestors) =>
 
 let rec renderNode = (~self, ~node, ~ancestors, ~index=?, ()) => {
   let {root, dirtyNode, hoveredNode} = self.ReasonReact.state;
-  let handleChange = value => value->Edit->(self.send);
-  let handleBlur = () => ancestors->ExitEditMode->(self.send);
+  let handleEditorChange = value =>
+    ExitEditMode(value, ancestors) |> self.send;
   <div
     key=?index
     style={ReactDOMRe.Style.make(~marginLeft="10px", ())}
@@ -59,8 +42,8 @@ let rec renderNode = (~self, ~node, ~ancestors, ~index=?, ()) => {
     onMouseLeave={_event => node->MouseLeave->(self.send)}>
     {root == node ? ReasonReact.null : ReasonReact.string("- ")}
     {switch (dirtyNode) {
-     | Some(dn) when dn.node == node =>
-       renderInput(~value=dn.uncommitedValue, ~handleChange, ~handleBlur)
+     | Some(dn) when dn == node =>
+       <NodeValueEditor value={node.value} onChange=handleEditorChange />
      | _ =>
        <span onDoubleClick={_event => node->EnterEditMode->(self.send)}>
          {ReasonReact.string(node.value)}
@@ -108,19 +91,7 @@ let updateRoot = (root, oldNode, newNode, ancestors) =>
   |> Belt_Option.getWithDefault(_, root);
 
 let setDirtyNode = (state, node) =>
-  ReasonReact.Update({
-    ...state,
-    dirtyNode: Some({node, uncommitedValue: node.value}),
-  });
-
-let setUncommitedValue = (state, value) =>
-  ReasonReact.Update({
-    ...state,
-    dirtyNode:
-      Belt.Option.map(state.dirtyNode, ({node}) =>
-        {node, uncommitedValue: value}
-      ),
-  });
+  ReasonReact.Update({...state, dirtyNode: Some(node)});
 
 let commitValue = (state, node, value, ancestors) =>
   ReasonReact.Update({
@@ -140,7 +111,7 @@ let addNode = (state, node, ancestors) => {
   let newNode = {value: "new", childNodes: []};
   ReasonReact.Update({
     hoveredNode: None,
-    dirtyNode: Some({node: newNode, uncommitedValue: newNode.value}),
+    dirtyNode: Some(node),
     root:
       updateRoot(
         state.root,
@@ -177,15 +148,14 @@ let make = (~initialTreeData, _children) => {
   reducer: (action, state) =>
     switch (action, state) {
     | (EnterEditMode(node), _) => setDirtyNode(state, node)
-    | (Edit(value), _) => setUncommitedValue(state, value)
-    | (ExitEditMode(ancestors), {dirtyNode: Some({node, uncommitedValue})})
-        when uncommitedValue != "" && uncommitedValue != node.value =>
-      commitValue(state, node, uncommitedValue, ancestors)
+    | (ExitEditMode(value, ancestors), {dirtyNode: Some(node)})
+        when value != "" && value != node.value =>
+      commitValue(state, node, value, ancestors)
+    | (ExitEditMode(_), _) => clearDirtyNode(state)
     | (Remove(ancestors), {hoveredNode: Some(node)}) =>
       removeNode(state, node, ancestors)
     | (Add(ancestors), {hoveredNode: Some(node)}) =>
       addNode(state, node, ancestors)
-    | (ExitEditMode(_), _) => clearDirtyNode(state)
     | (MouseEnter(node), _) => setHoveredNode(state, node)
     | (MouseLeave(node), _) => clearHoveredNodeIfUnchanged(state, node)
     | _ => ReasonReact.NoUpdate
