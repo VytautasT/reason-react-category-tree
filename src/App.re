@@ -2,5 +2,5 @@ let component = ReasonReact.statelessComponent("App");
 
 let make = _children => {
   ...component,
-  render: _self => <div> <CategoryTree /> </div>,
+  render: _self => <CategoryTree initialTreeData={InitialTreeData.initialTreeData}/>,
 };
