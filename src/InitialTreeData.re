@@ -1,4 +1,4 @@
-let initialTreeData: CategoryTree.treeNode = {
+let initialTreeData: CategoryTreeTypes.treeNode = {
   value: "root",
   childNodes: [
     {

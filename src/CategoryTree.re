@@ -1,7 +1,4 @@
-type treeNode = {
-  value: string,
-  childNodes: list(treeNode),
-};
+open CategoryTreeTypes;
 
 type state = {
   root: treeNode,
@@ -13,7 +10,7 @@ type action =
   | Add(list(treeNode))
   | Remove(list(treeNode))
   | EnterEditMode(treeNode)
-  | ExitEditMode(string, list(treeNode))
+  | ExitEditMode(nodeValue, list(treeNode))
   | MouseEnter(treeNode)
   | MouseLeave(treeNode);
 
@@ -21,11 +18,11 @@ let component = ReasonReact.reducerComponent("CategoryTree");
 
 let renderButtons = (~self, ~ancestors) =>
   <>
-    <button onClick={_event => self.ReasonReact.send(Add(ancestors))}>
+    <button onClick={_event => Add(ancestors)->(self.ReasonReact.send)}>
       {ReasonReact.string("+")}
     </button>
     {List.length(ancestors) > 0 ?
-       <button onClick={_event => self.send(Remove(ancestors))}>
+       <button onClick={_event => Remove(ancestors)->(self.send)}>
          {ReasonReact.string("x")}
        </button> :
        ReasonReact.null}
@@ -34,18 +31,18 @@ let renderButtons = (~self, ~ancestors) =>
 let rec renderNode = (~self, ~node, ~ancestors, ~index=?, ()) => {
   let {root, dirtyNode, hoveredNode} = self.ReasonReact.state;
   let handleEditorChange = value =>
-    ExitEditMode(value, ancestors) |> self.send;
+    ExitEditMode(value, ancestors)->(self.send);
   <div
     key=?index
     style={ReactDOMRe.Style.make(~marginLeft="10px", ())}
-    onMouseEnter={_event => node->MouseEnter->(self.send)}
-    onMouseLeave={_event => node->MouseLeave->(self.send)}>
+    onMouseEnter={_event => MouseEnter(node)->(self.send)}
+    onMouseLeave={_event => MouseLeave(node)->(self.send)}>
     {root == node ? ReasonReact.null : ReasonReact.string("- ")}
     {switch (dirtyNode) {
      | Some(dn) when dn == node =>
        <NodeValueEditor value={node.value} onChange=handleEditorChange />
      | _ =>
-       <span onDoubleClick={_event => node->EnterEditMode->(self.send)}>
+       <span onDoubleClick={_event => EnterEditMode(node)->(self.send)}>
          {ReasonReact.string(node.value)}
        </span>
      }}

@@ -1,11 +1,13 @@
-type state = string;
+type state = CategoryTreeTypes.nodeValue;
 
 type action =
-  | Change(string);
+  | Change(state);
 
 let component = ReasonReact.reducerComponent("NodeValueEditor");
 
 let make = (~value, ~onChange, _children) => {
+  let change = (event, self) =>
+    event->ReactEvent.Form.target##value->Change->(self.ReasonReact.send);
   let blur = (_event, self) => onChange(self.ReasonReact.state);
   let keyDown = (event, self) =>
     event->ReactEvent.Keyboard.key == "Enter" ?
@@ -24,9 +26,7 @@ let make = (~value, ~onChange, _children) => {
       <input
         value={self.state}
         autoFocus=true
-        onChange={event =>
-          event->ReactEvent.Form.target##value->Change->(self.send)
-        }
+        onChange={self.handle(change)}
         onBlur={self.handle(blur)}
         onKeyDown={self.handle(keyDown)}
       />,
