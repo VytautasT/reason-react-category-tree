@@ -37,9 +37,9 @@ let rec renderNode = (~self, ~node, ~ancestors, ~index=?, ()) => {
     style={ReactDOMRe.Style.make(~marginLeft="10px", ())}
     onMouseEnter={_event => MouseEnter(node)->(self.send)}
     onMouseLeave={_event => MouseLeave(node)->(self.send)}>
-    {root == node ? ReasonReact.null : ReasonReact.string("- ")}
+    {root === node ? ReasonReact.null : ReasonReact.string("- ")}
     {switch (dirtyNode) {
-     | Some(dn) when dn == node =>
+     | Some(dn) when dn === node =>
        <NodeValueEditor value={node.value} onChange=handleEditorChange />
      | _ =>
        <span onDoubleClick={_event => EnterEditMode(node)->(self.send)}>
@@ -47,7 +47,7 @@ let rec renderNode = (~self, ~node, ~ancestors, ~index=?, ()) => {
        </span>
      }}
     {switch (hoveredNode) {
-     | Some(hn) when hn == node => renderButtons(~self, ~ancestors)
+     | Some(hn) when hn === node => renderButtons(~self, ~ancestors)
      | _ => ReasonReact.null
      }}
     {node.childNodes
@@ -71,8 +71,8 @@ let updateNode =
       (
         switch (newChildOption) {
         | Some(newChild) =>
-          List.map(child => child == oldChild ? newChild : child)
-        | _ => List.filter(child => child != oldChild)
+          List.map(child => child === oldChild ? newChild : child)
+        | _ => List.filter(child => child !== oldChild)
         }
       )(
         parent.childNodes,
@@ -129,7 +129,7 @@ let clearHoveredNodeIfUnchanged = (state, node) =>
     ...state,
     hoveredNode:
       Belt_Option.flatMap(state.hoveredNode, hn =>
-        hn == node ? Some(hn) : None
+        hn === node ? Some(hn) : None
       ),
   });
 
