@@ -108,7 +108,7 @@ let addNode = (state, node, ancestors) => {
   let newNode = {value: "new", childNodes: []};
   ReasonReact.Update({
     hoveredNode: None,
-    dirtyNode: Some(node),
+    dirtyNode: Some(newNode),
     root:
       updateRoot(
         state.root,
