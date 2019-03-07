@@ -1,34 +1,48 @@
-type state = CategoryTreeTypes.nodeValue;
+type inputValue = CategoryTreeTypes.nodeValue;
+
+type state = {
+  value: inputValue,
+  inputRef: ref(option(Dom.element)),
+};
 
 type action =
-  | Change(state);
+  | Change(inputValue);
 
 let component = ReasonReact.reducerComponent("NodeValueEditor");
 
 let make = (~value, ~onChange, _children) => {
   let change = (event, self) =>
     event->ReactEvent.Form.target##value->Change->(self.ReasonReact.send);
-  let blur = (_event, self) => onChange(self.ReasonReact.state);
+  let blur = (_event, self) => onChange(self.ReasonReact.state.value);
   let keyDown = (event, self) =>
     event->ReactEvent.Keyboard.key == "Enter" ?
-      onChange(self.ReasonReact.state) : ();
+      onChange(self.ReasonReact.state.value) : ();
+  let setInputRef = (theRef, self) => {
+    self.ReasonReact.state.inputRef := Js.Nullable.toOption(theRef);
+  };
   {
     ...component,
 
-    initialState: () => value,
+    initialState: () => {value, inputRef: ref(None)},
 
-    reducer: (action, _state) =>
+    didMount: ({state}) =>
+      switch (state.inputRef^) {
+      | None => ()
+      | Some(r) => ReactDOMRe.domElementToObj(r)##focus() /* I solemnly swear that I am up to no good */
+      },
+
+    reducer: (action, state) =>
       switch (action) {
-      | Change(value) => ReasonReact.Update(value)
+      | Change(value) => ReasonReact.Update({...state, value})
       },
 
     render: self =>
       <input
-        value={self.state}
-        autoFocus=true
+        value={self.state.value}
         onChange={self.handle(change)}
         onBlur={self.handle(blur)}
         onKeyDown={self.handle(keyDown)}
+        ref={self.handle(setInputRef)}
       />,
   };
 };
